@@ -176,7 +176,10 @@ if __name__ == "__main__":
     )
 
     # Step 3: Train model
-    opt = Adam(lr=0.05)
-    tfmodel.compile(optimizer=opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-    tfmodel.fit(image_generator, epochs=10)
+    tf.debugging.set_log_device_placement(True)
+    strategy = tf.distribute.MirroredStrategy()
+    with strategy.scope():
+        opt = Adam(lr=0.05)
+        tfmodel.compile(optimizer=opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+        tfmodel.fit(image_generator, epochs=10)
 
