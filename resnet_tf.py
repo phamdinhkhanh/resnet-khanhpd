@@ -141,44 +141,44 @@ class DataGenerator(Sequence):
         return X, y
 
 if __name__ == "__main__":
-    # Step 1: Initilize model
-    residual_blocks = [
-        # Two start conv mapping
-        ResidualBlockTF(num_channels=64, output_channels=64, strides=2, is_used_conv11=False),
-        ResidualBlockTF(num_channels=64, output_channels=64, strides=2, is_used_conv11=False),
-        # Next three [conv mapping + identity mapping]
-        ResidualBlockTF(num_channels=64, output_channels=128, strides=2, is_used_conv11=True),
-        ResidualBlockTF(num_channels=128, output_channels=128, strides=2, is_used_conv11=False),
-        ResidualBlockTF(num_channels=128, output_channels=256, strides=2, is_used_conv11=True),
-        ResidualBlockTF(num_channels=256, output_channels=256, strides=2, is_used_conv11=False),
-        ResidualBlockTF(num_channels=256, output_channels=512, strides=2, is_used_conv11=True),
-        ResidualBlockTF(num_channels=512, output_channels=512, strides=2, is_used_conv11=False)
-    ]
-
-    tfmodel = ResNet18TF(residual_blocks, output_shape=10)
-    tfmodel.build(input_shape=(None, 224, 224, 3))
-    
-    
-    # Step 2: Initialize Data
-    (X_train, y_train), (X_test, y_test) = mnist.load_data()
-    X_train = np.stack((X_train,)*3, axis=-1)/255.0
-    X_test = np.stack((X_test,)*3, axis=-1)/255.0
-    y_train = y_train.astype(np.int8)
-    y_test = y_test.astype(np.int8)
-    print(X_test.shape, X_train.shape)
-    image_generator = DataGenerator(
-        X = X_train,
-        y = y_train,
-        batch_size = 256,
-        input_dim = (96, 96),
-        n_channels = 3,
-        shuffle = True
-    )
-
-    # Step 3: Train model
     tf.debugging.set_log_device_placement(True)
     strategy = tf.distribute.MirroredStrategy()
     with strategy.scope():
+        # Step 1: Initilize model
+        residual_blocks = [
+            # Two start conv mapping
+            ResidualBlockTF(num_channels=64, output_channels=64, strides=2, is_used_conv11=False),
+            ResidualBlockTF(num_channels=64, output_channels=64, strides=2, is_used_conv11=False),
+            # Next three [conv mapping + identity mapping]
+            ResidualBlockTF(num_channels=64, output_channels=128, strides=2, is_used_conv11=True),
+            ResidualBlockTF(num_channels=128, output_channels=128, strides=2, is_used_conv11=False),
+            ResidualBlockTF(num_channels=128, output_channels=256, strides=2, is_used_conv11=True),
+            ResidualBlockTF(num_channels=256, output_channels=256, strides=2, is_used_conv11=False),
+            ResidualBlockTF(num_channels=256, output_channels=512, strides=2, is_used_conv11=True),
+            ResidualBlockTF(num_channels=512, output_channels=512, strides=2, is_used_conv11=False)
+        ]
+
+        tfmodel = ResNet18TF(residual_blocks, output_shape=10)
+        tfmodel.build(input_shape=(None, 224, 224, 3))
+        
+        
+        # Step 2: Initialize Data
+        (X_train, y_train), (X_test, y_test) = mnist.load_data()
+        X_train = np.stack((X_train,)*3, axis=-1)/255.0
+        X_test = np.stack((X_test,)*3, axis=-1)/255.0
+        y_train = y_train.astype(np.int8)
+        y_test = y_test.astype(np.int8)
+        print(X_test.shape, X_train.shape)
+        image_generator = DataGenerator(
+            X = X_train,
+            y = y_train,
+            batch_size = 256,
+            input_dim = (96, 96),
+            n_channels = 3,
+            shuffle = True
+        )
+
+        # Step 3: Train model
         opt = Adam(lr=0.05)
         tfmodel.compile(optimizer=opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
         tfmodel.fit(image_generator, epochs=10)
